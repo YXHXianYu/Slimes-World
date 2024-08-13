@@ -64,3 +64,11 @@ pub struct MapComponent {
     pub height: usize,
     pub tiles: Vec<Vec<Entity>>,
 }
+
+// Slime
+
+#[derive(Component, Debug)]
+pub struct SlimeComponent {
+    pub x: i32,
+    pub y: i32,
+}

@@ -13,12 +13,14 @@ impl Plugin for SystemsPlugin {
         app.add_systems(Startup, (
             setup_map,
             setup_camera,
-            setup_lights
+            setup_lights,
+            setup_slime,
         ));
 
         app.add_systems(Update, (
             update_tile_transform,
-            update_camera
+            update_slime_transform,
+            update_camera,
         ));
     }
 }
@@ -130,10 +132,40 @@ fn setup_lights(mut commands: Commands) {
             ..default()
         },
         transform: Transform::
-            from_translation(Vec3::new(100.0, 100.0, 100.0))
+            from_translation(Vec3::new(10.0, 10.0, 10.0))
             .looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     });
+}
+
+fn setup_slime(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
+    let slime_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/slime.glb"));
+
+    let scale_factor = 1.0 / 3.2;
+    let scale_vec = Vec3::new(scale_factor, scale_factor, scale_factor);
+
+    let mut generate_slime = |x, y| {
+        commands.spawn((
+            SceneBundle {
+                scene: slime_handle.clone(),
+                transform: Transform::
+                    from_translation(Vec3::new(x as f32, 1.0, y as f32))
+                    .with_scale(scale_vec),
+                ..default()
+            },
+            SlimeComponent {
+                x,
+                y,
+            },
+        ));
+    };
+
+    generate_slime(22, 24);
+    generate_slime(21, 27);
+    generate_slime(23, 25);
 }
 
 // Update
@@ -144,6 +176,15 @@ fn update_tile_transform(
     query.iter_mut().for_each(|(mut transform, tile)| {
         transform.translation.x = tile.x as f32;
         transform.translation.z = tile.y as f32;
+    });
+}
+
+fn update_slime_transform(
+    mut query: Query<(&mut Transform, &SlimeComponent)>,
+) {
+    query.iter_mut().for_each(|(mut transform, slime)| {
+        transform.translation.x = slime.x as f32;
+        transform.translation.z = slime.y as f32;
     });
 }
 
