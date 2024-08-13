@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 // Map Components
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum TileType {
     Empty,
     // Walkable
@@ -53,8 +53,14 @@ impl TileComponent {
 }
 
 #[derive(Component, Debug)]
+pub struct SubEntitiesComponent {
+    pub self_entity: Entity,
+    pub sub_entities: Vec<Entity>,
+}
+
+#[derive(Component, Debug)]
 pub struct MapComponent {
     pub width: usize,
     pub height: usize,
-    pub tiles: Vec<Vec<TileComponent>>,
+    pub tiles: Vec<Vec<Entity>>,
 }

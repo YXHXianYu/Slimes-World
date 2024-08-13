@@ -35,28 +35,52 @@ fn setup_map(
     let dirt_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/dirt.glb"));
     let grass_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/grass.glb"));
     let water_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/water.glb"));
+    let tree_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/tree.glb"));
 
     // Spawn
     let scale_factor = 1.0 / 3.2;
     let scale_vec = Vec3::new(scale_factor, scale_factor, scale_factor);
 
     let mut generate_tile = |i, j, tile_type| {
-        let handle = match tile_type {
+        let base_handle = match tile_type {
             TileType::Dirt => dirt_handle.clone(),
             TileType::Grass => grass_handle.clone(),
             TileType::Water => water_handle.clone(),
+            TileType::Tree => grass_handle.clone(),
             _ => panic!("TileType not implemented"),
         };
-        commands.spawn((
+
+        // Base
+        let entity = commands.spawn((
             SceneBundle {
-                scene: handle,
+                scene: base_handle,
                 transform: Transform::
                     from_translation(Vec3::new(i as f32, 0.0, j as f32))
                     .with_scale(scale_vec),
                 ..default()
             },
             TileComponent::new(i as i32, j as i32, tile_type),
-        ));
+        )).id();
+
+        // Sub (e.g. Tree, Building)
+        match tile_type {
+            TileType::Tree => {
+                let tree_entity = commands.spawn((
+                    SceneBundle {
+                        scene: tree_handle.clone(),
+                        transform: Transform::
+                            from_translation(Vec3::new(i as f32, 1.0, j as f32))
+                            .with_scale(scale_vec),
+                        ..default()
+                    },
+                )).id();
+                commands.entity(entity).insert(SubEntitiesComponent{
+                    self_entity: entity,
+                    sub_entities: vec![tree_entity],
+                });
+            },
+            _ => (),
+        };
     };
 
     for i in 0..map.width {
@@ -68,6 +92,10 @@ fn setup_map(
             }
 
             if i % 5 <= 2 && j % 13 >= 2 && j % 13 <= 5 && (j / 13 % 2) == (i / 5 % 2) {
+                if i % 5 == 1 && (j / 13 % 2 == 1 && j % 13 == 3 || j / 13 % 2 == 0 && j % 13 == 4) {
+                    generate_tile(i, j, TileType::Tree);
+                    continue;
+                }
                 generate_tile(i, j, TileType::Grass);
                 continue;
             }
@@ -96,7 +124,14 @@ fn setup_camera(mut commands: Commands) {
 
 fn setup_lights(mut commands: Commands) {
     commands.spawn(DirectionalLightBundle {
-        transform: Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_4)),
+        directional_light: DirectionalLight {
+            illuminance: light_consts::lux::AMBIENT_DAYLIGHT,
+            shadows_enabled: true,
+            ..default()
+        },
+        transform: Transform::
+            from_translation(Vec3::new(100.0, 100.0, 100.0))
+            .looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     });
 }
