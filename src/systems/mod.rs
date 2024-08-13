@@ -1,3 +1,4 @@
+use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 
 use crate::components::*;
@@ -9,13 +10,16 @@ pub struct SystemsPlugin;
 
 impl Plugin for SystemsPlugin {
     fn build(&self, app: &mut App) {
-        // Startup
-        app.add_systems(Startup, setup_map);
-        app.add_systems(Startup, setup_camera);
-        app.add_systems(Startup, setup_lights);
+        app.add_systems(Startup, (
+            setup_map,
+            setup_camera,
+            setup_lights
+        ));
 
-        // Update
-        app.add_systems(Update, update_tile_transform);
+        app.add_systems(Update, (
+            update_tile_transform,
+            update_camera
+        ));
     }
 }
 
@@ -77,15 +81,17 @@ fn setup_camera(mut commands: Commands) {
     let position = Vec3::new(CAMERA_POS_X, CAMERA_POS_Y, CAMERA_POS_Z);
     let look_at = Vec3::new(CAMERA_LOOK_AT_X, CAMERA_LOOK_AT_Y, CAMERA_LOOK_AT_Z);
 
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_translation(
-            position
-        ).looking_at(
-            look_at,
-            Vec3::Y
-        ),
-        ..Default::default()
-    });
+    commands.spawn((
+        Camera3dBundle {
+            transform: Transform::from_translation(
+                position
+            ).looking_at(
+                look_at,
+                Vec3::Y
+            ),
+            ..Default::default()
+        },
+    ));
 }
 
 fn setup_lights(mut commands: Commands) {
@@ -104,4 +110,48 @@ fn update_tile_transform(
         transform.translation.x = tile.x as f32;
         transform.translation.z = tile.y as f32;
     });
+}
+
+fn update_camera(
+    mut camera: Query<&mut Transform, With<Camera>>,
+    kb: Res<ButtonInput<KeyCode>>,
+    mouse: Res<ButtonInput<MouseButton>>,
+    mut mouse_motion: EventReader<MouseMotion>,
+    time: Res<Time>,
+) {
+    let mut cam = camera.single_mut();
+
+    // keyboard
+    let f = |keycode| {
+        kb.pressed(keycode) as i32 as f32
+    };
+    let x = f(KeyCode::KeyD) - f(KeyCode::KeyA);
+    let y = f(KeyCode::KeyQ) - f(KeyCode::KeyE);
+    let z = f(KeyCode::KeyW) - f(KeyCode::KeyS); // forward is negative z
+    
+    let speed = time.delta_seconds() * CAMERA_MOVE_SPEED;
+    if x != 0.0 {
+        let right = cam.right();
+        cam.translation += right * x * speed;
+    }
+    if y != 0.0 {
+        cam.translation += Vec3::Y * y * speed;
+    }
+    if z != 0.0 {
+        let forward = cam.forward();
+        cam.translation += forward * z * speed;
+    }
+
+    // mouse
+    if mouse.pressed(MouseButton::Right) {
+        let mut delta = Vec2::ZERO;
+        for event in mouse_motion.read() {
+            delta += event.delta;
+        }
+        let delta = delta * CAMERA_ROTATE_SPEED;
+
+        cam.rotate_y(-delta.x);
+        cam.rotate_local_x(-delta.y);
+    }
+
 }
