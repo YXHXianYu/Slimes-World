@@ -11,7 +11,8 @@ impl Plugin for SystemsPlugin {
     fn build(&self, app: &mut App) {
         // Startup
         app.add_systems(Startup, setup_map);
-        app.add_systems(Startup, (setup_camera, setup_lights));
+        app.add_systems(Startup, setup_camera);
+        app.add_systems(Startup, setup_lights);
 
         // Update
         app.add_systems(Update, update_tile_transform);
