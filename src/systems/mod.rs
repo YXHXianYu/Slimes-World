@@ -38,6 +38,8 @@ fn setup_map(
     let grass_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/grass.glb"));
     let water_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/water.glb"));
     let tree_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/tree.glb"));
+    let home_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/home.glb"));
+    let spring_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/spring.glb"));
 
     // Spawn
     let scale_factor = 1.0 / 3.2;
@@ -47,8 +49,12 @@ fn setup_map(
         let base_handle = match tile_type {
             TileType::Dirt => dirt_handle.clone(),
             TileType::Grass => grass_handle.clone(),
+
             TileType::Water => water_handle.clone(),
-            TileType::Tree => grass_handle.clone(),
+            TileType::Tree => dirt_handle.clone(),
+
+            TileType::Home => dirt_handle.clone(),
+            TileType::Spring => dirt_handle.clone(),
             _ => panic!("TileType not implemented"),
         };
 
@@ -81,28 +87,74 @@ fn setup_map(
                     sub_entities: vec![tree_entity],
                 });
             },
-            _ => (),
+            TileType::Home => {
+                let home_entity = commands.spawn((
+                    SceneBundle {
+                        scene: home_handle.clone(),
+                        transform: Transform::
+                            from_translation(Vec3::new(i as f32, 1.0, j as f32))
+                            .with_scale(scale_vec),
+                        ..default()
+                    },
+                )).id();
+                commands.entity(entity).insert(SubEntitiesComponent{
+                    self_entity: entity,
+                    sub_entities: vec![home_entity],
+                });
+            },
+            TileType::Spring => {
+                let spring_entity = commands.spawn((
+                    SceneBundle {
+                        scene: spring_handle.clone(),
+                        transform: Transform::
+                            from_translation(Vec3::new(i as f32, 1.0, j as f32))
+                            .with_scale(scale_vec),
+                        ..default()
+                    },
+                )).id();
+                commands.entity(entity).insert(SubEntitiesComponent{
+                    self_entity: entity,
+                    sub_entities: vec![spring_entity],
+                });
+            },
+            _ => {
+                commands.entity(entity).insert(SubEntitiesComponent{
+                    self_entity: entity,
+                    sub_entities: vec![],
+                });
+            },
         };
+    };
+
+    let mut f = |i, j, tile_type, expr| {
+        if expr {
+            generate_tile(i, j, tile_type);
+            return true;
+        }
+        return false
     };
 
     for i in 0..map.width {
         for j in 0..map.height {
+            // Team A
+            if f(i, j, TileType::Home, i == 3 && j == 3) { continue; }
+            if f(i, j, TileType::Spring, i == 3 && j == 4) { continue; }
+            // Team B
+            if f(i, j, TileType::Home, i == 28 && j == 28) { continue; }
+            if f(i, j, TileType::Spring, i == 28 && j == 27) { continue; }
+            
+            if f(i, j, TileType::Water, 10 <= i && i <= 20 && 10 <= j && j <= 20) { continue; }
 
-            if 10 <= i && i <= 20 && 10 <= j && j <= 20 {
-                generate_tile(i, j, TileType::Water);
-                continue;
-            }
+            if f(i, j, TileType::Tree,
+                (i % 5 <= 2 && j % 13 >= 2 && j % 13 <= 5 && (j / 13 % 2) == (i / 5 % 2)) &&
+                    (i % 5 == 1 && (j / 13 % 2 == 1 && j % 13 == 3 || j / 13 % 2 == 0 && j % 13 == 4))
+            ) { continue; }
 
-            if i % 5 <= 2 && j % 13 >= 2 && j % 13 <= 5 && (j / 13 % 2) == (i / 5 % 2) {
-                if i % 5 == 1 && (j / 13 % 2 == 1 && j % 13 == 3 || j / 13 % 2 == 0 && j % 13 == 4) {
-                    generate_tile(i, j, TileType::Tree);
-                    continue;
-                }
-                generate_tile(i, j, TileType::Grass);
-                continue;
-            }
+            if f(i, j, TileType::Grass,
+                i % 5 <= 2 && j % 13 >= 2 && j % 13 <= 5 && (j / 13 % 2) == (i / 5 % 2)
+            ) { continue; }
 
-            generate_tile(i, j, TileType::Dirt);
+            if f(i, j, TileType::Dirt, true) { continue; }
         }
     }
 }

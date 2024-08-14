@@ -14,21 +14,29 @@ pub enum TileType {
     Rock,
     Tree,
     Water,
-    Building, // Wall, Home, Spring
+    // NonWalkable & Building
+    Home,
+    Spring,
+    Wall,
 }
 
 impl TileType {
     pub fn is_walkable(&self) -> bool {
         match self {
             TileType::Empty => false,
+
             TileType::Dirt => true,
             TileType::Grass => true,
             TileType::Sand => true,
             TileType::Bush => true,
+
             TileType::Rock => false,
             TileType::Tree => false,
             TileType::Water => false,
-            TileType::Building => false,
+
+            TileType::Home => false,
+            TileType::Spring => false,
+            TileType::Wall => false,
         }
     }
 }
