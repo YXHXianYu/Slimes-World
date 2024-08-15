@@ -1,5 +1,6 @@
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
+use bevy::utils::hashbrown::HashMap;
 
 use crate::components::*;
 use crate::resources::*;
@@ -29,37 +30,36 @@ impl Plugin for SystemsPlugin {
 
 fn setup_map(
     mut commands: Commands,
-    map: Res<MapResource>,
     asset_server: Res<AssetServer>,
 ) {
+    use TileType::*;
+    use BuildingType::*;
 
-    // Model Handles
-    let dirt_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/dirt.glb"));
-    let grass_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/grass.glb"));
-    let water_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/water.glb"));
-    let tree_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/tree.glb"));
-    let home_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/home.glb"));
-    let spring_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/spring.glb"));
+    let mut map_component = MapComponent {
+        width: MAP_WIDTH,
+        height: MAP_HEIGHT,
+        tiles: vec![Vec::with_capacity(MAP_HEIGHT); MAP_WIDTH], // Be careful here!
+        buildings: HashMap::new(),
+    };
 
-    // Spawn
+    // Scale
     let scale_factor = 1.0 / 3.2;
     let scale_vec = Vec3::new(scale_factor, scale_factor, scale_factor);
 
+    // Tiles Handles
+    let dirt_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/dirt.glb"));
+    let grass_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/grass.glb"));
+    let water_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/water.glb"));
+
+    // Generate Tiles
     let mut generate_tile = |i, j, tile_type| {
         let base_handle = match tile_type {
             TileType::Dirt => dirt_handle.clone(),
             TileType::Grass => grass_handle.clone(),
-
             TileType::Water => water_handle.clone(),
-            TileType::Tree => dirt_handle.clone(),
-
-            TileType::Home => dirt_handle.clone(),
-            TileType::Spring => dirt_handle.clone(),
             _ => panic!("TileType not implemented"),
         };
-
-        // Base
-        let entity = commands.spawn((
+        commands.spawn((
             SceneBundle {
                 scene: base_handle,
                 transform: Transform::
@@ -68,12 +68,38 @@ fn setup_map(
                 ..default()
             },
             TileComponent::new(i as i32, j as i32, tile_type),
-        )).id();
+        )).id()
+    };
 
-        // Sub (e.g. Tree, Building)
-        match tile_type {
-            TileType::Tree => {
-                let tree_entity = commands.spawn((
+    macro_rules! g_tile {
+        ($i:expr, $j:expr, $tile_type:expr, $expr:expr) => {
+            if $expr {
+                map_component.tiles[$i].push(
+                    generate_tile($i, $j, $tile_type)
+                );
+                continue;
+            }
+        };
+    }
+
+    for i in 0..map_component.width {
+        for j in 0..map_component.height {
+            g_tile!(i, j, Water, 10 <= i && i <= 20 && 10 <= j && j <= 20);
+            g_tile!(i, j, Grass, i % 5 <= 2 && j % 13 >= 2 && j % 13 <= 5 && (j / 13 % 2) == (i / 5 % 2));
+            g_tile!(i, j, Dirt, true);
+        }
+    }
+    
+    // Buildings Handles
+    let tree_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/tree.glb"));
+    let home_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/home.glb"));
+    let spring_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/spring.glb"));
+
+    // Generate Buildings
+    let mut generate_building = |i, j, building_type| {
+        match building_type {
+            Tree => {
+                return commands.spawn((
                     SceneBundle {
                         scene: tree_handle.clone(),
                         transform: Transform::
@@ -82,13 +108,9 @@ fn setup_map(
                         ..default()
                     },
                 )).id();
-                commands.entity(entity).insert(SubEntitiesComponent{
-                    self_entity: entity,
-                    sub_entities: vec![tree_entity],
-                });
             },
-            TileType::Home => {
-                let home_entity = commands.spawn((
+            Home => {
+                return commands.spawn((
                     SceneBundle {
                         scene: home_handle.clone(),
                         transform: Transform::
@@ -97,13 +119,9 @@ fn setup_map(
                         ..default()
                     },
                 )).id();
-                commands.entity(entity).insert(SubEntitiesComponent{
-                    self_entity: entity,
-                    sub_entities: vec![home_entity],
-                });
             },
-            TileType::Spring => {
-                let spring_entity = commands.spawn((
+            Spring => {
+                return commands.spawn((
                     SceneBundle {
                         scene: spring_handle.clone(),
                         transform: Transform::
@@ -112,51 +130,39 @@ fn setup_map(
                         ..default()
                     },
                 )).id();
-                commands.entity(entity).insert(SubEntitiesComponent{
-                    self_entity: entity,
-                    sub_entities: vec![spring_entity],
-                });
             },
-            _ => {
-                commands.entity(entity).insert(SubEntitiesComponent{
-                    self_entity: entity,
-                    sub_entities: vec![],
-                });
-            },
+            _ => panic!("BuildingType not implemented"),
         };
     };
 
-    let mut f = |i, j, tile_type, expr| {
-        if expr {
-            generate_tile(i, j, tile_type);
-            return true;
-        }
-        return false
-    };
+    macro_rules! g_building {
+        ($i:expr, $j:expr, $building_type:expr, $expr:expr) => {
+            if $expr {
+                map_component.buildings.insert(
+                    IVec3::new($i as i32, 1, $j as i32),
+                    generate_building($i, $j, $building_type)
+                );
+                continue;
+            }
+        };
+    }
 
-    for i in 0..map.width {
-        for j in 0..map.height {
-            // Team A
-            if f(i, j, TileType::Home, i == 3 && j == 3) { continue; }
-            if f(i, j, TileType::Spring, i == 3 && j == 4) { continue; }
-            // Team B
-            if f(i, j, TileType::Home, i == 28 && j == 28) { continue; }
-            if f(i, j, TileType::Spring, i == 28 && j == 27) { continue; }
-            
-            if f(i, j, TileType::Water, 10 <= i && i <= 20 && 10 <= j && j <= 20) { continue; }
+    for i in 0..map_component.width {
+        for j in 0..map_component.height {
+            g_building!(i, j, Home, i == 3 && j == 3);
+            g_building!(i, j, Spring, i == 3 && j == 4);
 
-            if f(i, j, TileType::Tree,
-                (i % 5 <= 2 && j % 13 >= 2 && j % 13 <= 5 && (j / 13 % 2) == (i / 5 % 2)) &&
-                    (i % 5 == 1 && (j / 13 % 2 == 1 && j % 13 == 3 || j / 13 % 2 == 0 && j % 13 == 4))
-            ) { continue; }
+            g_building!(i, j, Home, i == 28 && j == 28);
+            g_building!(i, j, Spring, i == 28 && j == 27);
 
-            if f(i, j, TileType::Grass,
-                i % 5 <= 2 && j % 13 >= 2 && j % 13 <= 5 && (j / 13 % 2) == (i / 5 % 2)
-            ) { continue; }
-
-            if f(i, j, TileType::Dirt, true) { continue; }
+            g_building!(i, j, Tree,
+                (i % 5 <= 2 && j % 13 >= 2 && j % 13 <= 5 && (j / 13 % 2) == (i / 5 % 2))
+                && (i % 5 == 1 && (j / 13 % 2 == 1 && j % 13 == 3 || j / 13 % 2 == 0 && j % 13 == 4))
+            );
         }
     }
+
+    commands.spawn(map_component);
 }
 
 fn setup_camera(mut commands: Commands) {
@@ -193,31 +199,35 @@ fn setup_lights(mut commands: Commands) {
 fn setup_slime(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    game_resource: Res<GameResource>,
 ) {
     let slime_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/slime.glb"));
 
     let scale_factor = 1.0 / 3.2;
     let scale_vec = Vec3::new(scale_factor, scale_factor, scale_factor);
 
-    let mut generate_slime = |x, y| {
+    let mut generate_slime = |x, z, id| {
         commands.spawn((
             SceneBundle {
                 scene: slime_handle.clone(),
                 transform: Transform::
-                    from_translation(Vec3::new(x as f32, 1.0, y as f32))
+                    from_translation(Vec3::new(x as f32, 1.0, z as f32))
                     .with_scale(scale_vec),
                 ..default()
             },
             SlimeComponent {
                 x,
-                y,
+                z,
             },
+            BeControlledComponent {
+                team_id: id,
+            }
         ));
     };
 
-    generate_slime(22, 24);
-    generate_slime(21, 27);
-    generate_slime(23, 25);
+    generate_slime(22, 24, game_resource.teams[0].id);
+    generate_slime(21, 27, game_resource.teams[0].id);
+    generate_slime(23, 25, game_resource.teams[0].id);
 }
 
 // Update
@@ -227,7 +237,7 @@ fn update_tile_transform(
 ) {
     query.iter_mut().for_each(|(mut transform, tile)| {
         transform.translation.x = tile.x as f32;
-        transform.translation.z = tile.y as f32;
+        transform.translation.z = tile.z as f32;
     });
 }
 
@@ -236,7 +246,7 @@ fn update_slime_transform(
 ) {
     query.iter_mut().for_each(|(mut transform, slime)| {
         transform.translation.x = slime.x as f32;
-        transform.translation.z = slime.y as f32;
+        transform.translation.z = slime.z as f32;
     });
 }
 
