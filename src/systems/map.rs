@@ -4,6 +4,8 @@ use bevy::utils::hashbrown::HashMap;
 use crate::components::*;
 use crate::config::*;
 
+use super::GameResource;
+
 pub struct MapSystemPlugin;
 impl Plugin for MapSystemPlugin {
     fn build(&self, app: &mut App) {
@@ -15,7 +17,10 @@ fn startup_map(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut query: Query<&mut MapComponent>,
+    team_resource: Res<GameResource>,
 ) {
+    assert!(team_resource.teams.len() == TEAM_COUNT, "Team count not match the map! Please adjust the `TEAM_COUNT` in config.rs OR change the `map`!");
+
     let map_id = commands.spawn(MapComponent {
         width: MAP_WIDTH,
         height: MAP_HEIGHT,
@@ -104,7 +109,7 @@ fn startup_map_buildings(
     let spring_handle = asset_server.load(GltfAssetLabel::Scene(0).from_asset("./models/spring.glb"));
 
     // Generate Buildings
-    let mut generate_building = |i, j, building_type| {
+    let mut generate_building = |i, j, building_type, team_id| {
         let scene_bundle = match building_type {
             Tree => {
                 SceneBundle {
@@ -139,15 +144,16 @@ fn startup_map_buildings(
         commands.spawn((
             scene_bundle,
             InMapComponent { map_id },
+            BeControlledComponent { team_id },
         )).id()
     };
 
     macro_rules! g_building {
-        ($i:expr, $j:expr, $building_type:expr, $expr:expr) => {
+        ($i:expr, $j:expr, $building_type:expr, $team_id:expr, $expr:expr) => {
             if $expr {
                 map.buildings.insert(
                     IVec3::new($i as i32, 1, $j as i32),
-                    generate_building($i, $j, $building_type),
+                    generate_building($i, $j, $building_type, $team_id),
                 );
                 continue;
             }
@@ -156,13 +162,13 @@ fn startup_map_buildings(
 
     for i in 0..map.width {
         for j in 0..map.height {
-            g_building!(i, j, Home, i == 3 && j == 3);
-            g_building!(i, j, Spring, i == 3 && j == 4);
+            g_building!(i, j, Home  , 1, i == 3 && j == 3);
+            g_building!(i, j, Spring, 1, i == 3 && j == 4);
 
-            g_building!(i, j, Home, i == 28 && j == 28);
-            g_building!(i, j, Spring, i == 28 && j == 27);
+            g_building!(i, j, Home  , 2, i == 28 && j == 28);
+            g_building!(i, j, Spring, 2, i == 28 && j == 27);
 
-            g_building!(i, j, Tree,
+            g_building!(i, j, Tree  , 0,
                 (i % 5 <= 2 && j % 13 >= 2 && j % 13 <= 5 && (j / 13 % 2) == (i / 5 % 2))
                 && (i % 5 == 1 && (j / 13 % 2 == 1 && j % 13 == 3 || j / 13 % 2 == 0 && j % 13 == 4))
             );

@@ -101,8 +101,8 @@ pub struct SlimeComponent {
 
 // Team
 
+// 在所有system startup完毕之后的PostStartup中，自动register所有的Slimes和Buildings
 #[derive(Component, Debug)]
 pub struct BeControlledComponent {
     pub team_id: u32,
-    // TODO: 如何使得AI可以快速调用自己拥有的建筑物和单位，应该需要register一下
 }

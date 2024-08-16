@@ -8,19 +8,23 @@ use crate::config::*;
 mod map;
 use map::MapSystemPlugin;
 
-pub struct SystemsPlugin;
+mod team;
+use team::TeamSystemPlugin;
 
+pub struct SystemsPlugin;
 impl Plugin for SystemsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(
-            MapSystemPlugin
-        );
+        app.add_plugins((
+            MapSystemPlugin,
+            TeamSystemPlugin,
+        ));
 
         app.add_systems(Startup, (
             startup_camera,
             startup_lights,
             startup_slime,
         ));
+
 
         app.add_systems(Update, (
             update_tile_transform,
@@ -73,7 +77,7 @@ fn startup_slime(
     let scale_factor = 1.0 / 3.2;
     let scale_vec = Vec3::new(scale_factor, scale_factor, scale_factor);
 
-    let mut generate_slime = |x, z, id| {
+    let mut generate_slime = |x, z, team_id| {
         commands.spawn((
             SceneBundle {
                 scene: slime_handle.clone(),
@@ -87,7 +91,7 @@ fn startup_slime(
                 z,
             },
             BeControlledComponent {
-                team_id: id,
+                team_id,
             }
         ));
     };

@@ -3,6 +3,8 @@ pub mod systems;
 pub mod resources;
 pub mod utils;
 pub mod config;
+pub mod ai_framework;
+pub mod ai;
 
 use bevy::prelude::*;
 
