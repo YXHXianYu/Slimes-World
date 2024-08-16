@@ -1,29 +1,27 @@
-use std::sync::Arc;
-
-use crate::resources::Team;
+use crate::core::*;
 
 
 #[derive(Debug)]
 pub struct GameController<'a> {
-    team_id: u32,
     team_data: &'a Team,
+    // TODO: 添加一个event事件列表，用于添加事件（可以用trait）
 }
 
 impl<'a> GameController<'a> {
     // MARK: Public
-    pub fn new(team_id: u32, team_data: &'a Team) -> Self {
+
+    pub fn new(team_data: &'a Team) -> Self {
         GameController {
-            team_id,
             team_data,
         }
     }
 
-    pub fn team_id(&self) -> u32 {
-        self.team_id
-    }
-
     pub fn team_data(&self) -> &'a Team {
         self.team_data
+    }
+
+    pub fn slime_move_to(&self, slime: &Slime, x: i32, z: i32) {
+        // TODO
     }
 
     // MARK: Private

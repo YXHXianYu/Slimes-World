@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use bevy::prelude::*;
 
-use crate::config::*;
+use crate::{config::*, core::Team};
 
 pub struct ResourcesPlugin;
 
@@ -34,11 +34,4 @@ impl Plugin for ResourcesPlugin {
 #[derive(Resource, Debug)]
 pub struct GameResource {
     pub teams: Vec<Team>,
-}
-
-#[derive(Debug)]
-pub struct Team {
-    pub id: u32,
-    pub slimes: Vec<Entity>,
-    pub buildings: Vec<Entity>,
 }
