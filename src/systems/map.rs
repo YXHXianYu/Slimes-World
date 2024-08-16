@@ -14,29 +14,30 @@ impl Plugin for MapSystemPlugin {
 fn startup_map(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    mut query: Query<&mut MapComponent>,
 ) {
-
-    let mut map = MapComponent {
+    let map_id = commands.spawn(MapComponent {
         width: MAP_WIDTH,
         height: MAP_HEIGHT,
         tiles: vec![Vec::with_capacity(MAP_HEIGHT); MAP_WIDTH], // Be careful here!
         buildings: HashMap::new(),
-    };
+    }).id();
+
+    let mut map = query.get_mut(map_id).unwrap();
 
     // Scale
     let scale_factor = 1.0 / 3.2;
     let scale_vec = Vec3::new(scale_factor, scale_factor, scale_factor);
 
-    startup_map_tiles(&mut commands, &asset_server, &mut map, scale_vec);
-    startup_map_buildings(&mut commands, &asset_server, &mut map, scale_vec);
-    
-    commands.spawn(map);
+    startup_map_tiles(&mut commands, &asset_server, &mut map, map_id, scale_vec);
+    startup_map_buildings(&mut commands, &asset_server, &mut map, map_id, scale_vec);
 }
 
 fn startup_map_tiles(
     commands: &mut Commands,
     asset_server: &Res<AssetServer>,
     map: &mut MapComponent,
+    map_id: Entity,
     scale_vec: Vec3,
 ) {
     use TileType::*;
@@ -63,6 +64,7 @@ fn startup_map_tiles(
                 ..default()
             },
             TileComponent::new(i as i32, j as i32, tile_type),
+            InMapComponent { map_id },
         )).id()
     };
 
@@ -91,6 +93,7 @@ fn startup_map_buildings(
     commands: &mut Commands,
     asset_server: &Res<AssetServer>,
     map: &mut MapComponent,
+    map_id: Entity,
     scale_vec: Vec3,
 ) {
     use BuildingType::*;
@@ -102,42 +105,41 @@ fn startup_map_buildings(
 
     // Generate Buildings
     let mut generate_building = |i, j, building_type| {
-        match building_type {
+        let scene_bundle = match building_type {
             Tree => {
-                return commands.spawn((
-                    SceneBundle {
-                        scene: tree_handle.clone(),
-                        transform: Transform::
-                            from_translation(Vec3::new(i as f32, 1.0, j as f32))
-                            .with_scale(scale_vec),
-                        ..default()
-                    },
-                )).id();
+                SceneBundle {
+                    scene: tree_handle.clone(),
+                    transform: Transform::
+                        from_translation(Vec3::new(i as f32, 1.0, j as f32))
+                        .with_scale(scale_vec),
+                    ..default()
+                }
             },
             Home => {
-                return commands.spawn((
-                    SceneBundle {
-                        scene: home_handle.clone(),
-                        transform: Transform::
-                            from_translation(Vec3::new(i as f32, 1.0, j as f32))
-                            .with_scale(scale_vec),
-                        ..default()
-                    },
-                )).id();
+                SceneBundle {
+                    scene: home_handle.clone(),
+                    transform: Transform::
+                        from_translation(Vec3::new(i as f32, 1.0, j as f32))
+                        .with_scale(scale_vec),
+                    ..default()
+                }
             },
             Spring => {
-                return commands.spawn((
-                    SceneBundle {
-                        scene: spring_handle.clone(),
-                        transform: Transform::
-                            from_translation(Vec3::new(i as f32, 1.0, j as f32))
-                            .with_scale(scale_vec),
-                        ..default()
-                    },
-                )).id();
+                SceneBundle {
+                    scene: spring_handle.clone(),
+                    transform: Transform::
+                        from_translation(Vec3::new(i as f32, 1.0, j as f32))
+                        .with_scale(scale_vec),
+                    ..default()
+                }
             },
             _ => panic!("BuildingType not implemented"),
         };
+
+        commands.spawn((
+            scene_bundle,
+            InMapComponent { map_id },
+        )).id()
     };
 
     macro_rules! g_building {
@@ -145,7 +147,7 @@ fn startup_map_buildings(
             if $expr {
                 map.buildings.insert(
                     IVec3::new($i as i32, 1, $j as i32),
-                    generate_building($i, $j, $building_type)
+                    generate_building($i, $j, $building_type),
                 );
                 continue;
             }

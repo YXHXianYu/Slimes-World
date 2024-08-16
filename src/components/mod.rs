@@ -86,11 +86,10 @@ pub struct MapComponent {
     pub buildings: HashMap<IVec3, Entity>,
 }
 
-// #[derive(Component, Debug)]
-// pub struct SubEntitiesComponent {
-//     pub self_entity: Entity,
-//     pub sub_entities: Vec<Entity>,
-// }
+#[derive(Component, Debug)]
+pub struct InMapComponent {
+    pub map_id: Entity,
+}
 
 // Slime
 
