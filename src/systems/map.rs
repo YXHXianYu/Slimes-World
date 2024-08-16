@@ -4,7 +4,14 @@ use bevy::utils::hashbrown::HashMap;
 use crate::components::*;
 use crate::config::*;
 
-pub fn setup_map(
+pub struct MapSystemPlugin;
+impl Plugin for MapSystemPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Startup, startup_map);
+    }
+}
+
+fn startup_map(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
 ) {
@@ -20,13 +27,13 @@ pub fn setup_map(
     let scale_factor = 1.0 / 3.2;
     let scale_vec = Vec3::new(scale_factor, scale_factor, scale_factor);
 
-    setup_map_tiles(&mut commands, &asset_server, &mut map, scale_vec);
-    setup_map_buildings(&mut commands, &asset_server, &mut map, scale_vec);
+    startup_map_tiles(&mut commands, &asset_server, &mut map, scale_vec);
+    startup_map_buildings(&mut commands, &asset_server, &mut map, scale_vec);
     
     commands.spawn(map);
 }
 
-fn setup_map_tiles(
+fn startup_map_tiles(
     commands: &mut Commands,
     asset_server: &Res<AssetServer>,
     map: &mut MapComponent,
@@ -80,7 +87,7 @@ fn setup_map_tiles(
 
 }
 
-fn setup_map_buildings(
+fn startup_map_buildings(
     commands: &mut Commands,
     asset_server: &Res<AssetServer>,
     map: &mut MapComponent,

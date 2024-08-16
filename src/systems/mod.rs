@@ -6,17 +6,20 @@ use crate::resources::*;
 use crate::config::*;
 
 mod map;
-use map::setup_map;
+use map::MapSystemPlugin;
 
 pub struct SystemsPlugin;
 
 impl Plugin for SystemsPlugin {
     fn build(&self, app: &mut App) {
+        app.add_plugins(
+            MapSystemPlugin
+        );
+
         app.add_systems(Startup, (
-            setup_map,
-            setup_camera,
-            setup_lights,
-            setup_slime,
+            startup_camera,
+            startup_lights,
+            startup_slime,
         ));
 
         app.add_systems(Update, (
@@ -29,8 +32,7 @@ impl Plugin for SystemsPlugin {
 
 // Startup
 
-
-fn setup_camera(mut commands: Commands) {
+fn startup_camera(mut commands: Commands) {
     let position = Vec3::new(CAMERA_POS_X, CAMERA_POS_Y, CAMERA_POS_Z);
     let look_at = Vec3::new(CAMERA_LOOK_AT_X, CAMERA_LOOK_AT_Y, CAMERA_LOOK_AT_Z);
 
@@ -47,7 +49,7 @@ fn setup_camera(mut commands: Commands) {
     ));
 }
 
-fn setup_lights(mut commands: Commands) {
+fn startup_lights(mut commands: Commands) {
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
             illuminance: light_consts::lux::AMBIENT_DAYLIGHT,
@@ -61,7 +63,7 @@ fn setup_lights(mut commands: Commands) {
     });
 }
 
-fn setup_slime(
+fn startup_slime(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     game_resource: Res<GameResource>,
