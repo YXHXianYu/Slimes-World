@@ -1,8 +1,7 @@
 use bevy::prelude::*;
 use bevy::utils::hashbrown::HashMap;
 
-use crate::components::*;
-use crate::config::*;
+use crate::prelude::*;
 
 use super::GameResource;
 
@@ -16,26 +15,25 @@ impl Plugin for MapSystemPlugin {
 fn startup_map(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut query: Query<&mut MapComponent>,
     team_resource: Res<GameResource>,
 ) {
     assert!(team_resource.teams.len() == TEAM_COUNT, "Team count not match the map! Please adjust the `TEAM_COUNT` in config.rs OR change the `map`!");
 
-    let map_id = commands.spawn(MapComponent {
+    let map_id = commands.spawn(()).id();
+    let mut map = MapComponent {
         width: MAP_WIDTH,
         height: MAP_HEIGHT,
         tiles: vec![Vec::with_capacity(MAP_HEIGHT); MAP_WIDTH], // Be careful here!
         buildings: HashMap::new(),
-    }).id();
+    };
 
-    let mut map = query.get_mut(map_id).unwrap();
-
-    // Scale
     let scale_factor = 1.0 / 3.2;
     let scale_vec = Vec3::new(scale_factor, scale_factor, scale_factor);
 
     startup_map_tiles(&mut commands, &asset_server, &mut map, map_id, scale_vec);
     startup_map_buildings(&mut commands, &asset_server, &mut map, map_id, scale_vec);
+
+    commands.entity(map_id).insert(map);
 }
 
 fn startup_map_tiles(
@@ -143,6 +141,8 @@ fn startup_map_buildings(
 
         commands.spawn((
             scene_bundle,
+            BuildingComponent::new(building_type),
+            TransformComponent { x: i as i32, y: 1, z: j as i32 },
             InMapComponent { map_id },
             BeControlledComponent { team_id },
         )).id()

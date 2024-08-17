@@ -61,18 +61,12 @@ pub enum BuildingType {
 
 #[derive(Component, Debug)]
 pub struct BuildingComponent {
-    pub x: i32,
-    pub y: i32,
-    pub z: i32,
     pub building_type: BuildingType,
 }
 
 impl BuildingComponent {
-    pub fn new(x: i32, y: i32, z: i32, building_type: BuildingType) -> Self {
+    pub fn new(building_type: BuildingType) -> Self {
         BuildingComponent {
-            x,
-            y,
-            z,
             building_type,
         }
     }
@@ -94,12 +88,16 @@ pub struct InMapComponent {
 // Slime
 
 #[derive(Component, Debug)]
-pub struct SlimeComponent {
-    pub x: i32,
-    pub z: i32,
-}
+pub struct SlimeComponent;
 
 // Team
+
+#[derive(Component, Debug)]
+pub struct TransformComponent {
+    pub x: i32,
+    pub y: i32,
+    pub z: i32,
+}
 
 // 在所有system startup完毕之后的PostStartup中，自动register所有的Slimes和Buildings
 #[derive(Component, Debug)]

@@ -1,12 +1,10 @@
-use std::sync::Arc;
-
 ///
 /// 尽量在ResourcesPlugin中初始化资源，这样可以保证资源在System被加载前初始化
 /// 
 
 use bevy::prelude::*;
 
-use crate::{config::*, core::Team};
+use crate::prelude::*;
 
 pub struct ResourcesPlugin;
 

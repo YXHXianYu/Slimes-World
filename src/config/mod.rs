@@ -1,4 +1,8 @@
 
+// Game
+
+pub const GAME_TICK: usize = 2; // ticks per second
+
 // Map
 pub const MAP_WIDTH: usize = 32;
 pub const MAP_HEIGHT: usize = 32;

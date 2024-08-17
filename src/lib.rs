@@ -1,11 +1,22 @@
 pub mod components;
 pub mod systems;
 pub mod resources;
-pub mod utils;
+// pub mod utils;
 pub mod config;
 pub mod core;
 pub mod ai_framework;
+
 pub mod ai;
+
+pub mod prelude {
+    pub use crate::components::*;
+    pub use crate::systems::*;
+    pub use crate::resources::*;
+    // pub use crate::utils::*;
+    pub use crate::config::*;
+    pub use crate::core::*;
+    pub use crate::ai_framework::*;
+}
 
 use bevy::prelude::*;
 

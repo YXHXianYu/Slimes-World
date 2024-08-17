@@ -1,9 +1,7 @@
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 
-use crate::components::*;
-use crate::resources::*;
-use crate::config::*;
+use crate::prelude::*;
 
 mod map;
 use map::MapSystemPlugin;
@@ -11,12 +9,16 @@ use map::MapSystemPlugin;
 mod team;
 use team::TeamSystemPlugin;
 
+mod ai;
+use ai::AiSystemPlugin;
+
 pub struct SystemsPlugin;
 impl Plugin for SystemsPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             MapSystemPlugin,
             TeamSystemPlugin,
+            AiSystemPlugin,
         ));
 
         app.add_systems(Startup, (
@@ -86,19 +88,21 @@ fn startup_slime(
                     .with_scale(scale_vec),
                 ..default()
             },
-            SlimeComponent {
-                x,
-                z,
-            },
+            SlimeComponent,
+            TransformComponent { x, y: 1, z, },
             BeControlledComponent {
                 team_id,
             }
         ));
     };
 
-    generate_slime(22, 24, game_resource.teams[0].id);
-    generate_slime(21, 27, game_resource.teams[0].id);
-    generate_slime(23, 25, game_resource.teams[0].id);
+    generate_slime(22, 24, game_resource.teams[1].id);
+    generate_slime(21, 27, game_resource.teams[1].id);
+    generate_slime(23, 25, game_resource.teams[1].id);
+
+    generate_slime(5, 4, game_resource.teams[2].id);
+    generate_slime(5, 6, game_resource.teams[2].id);
+    generate_slime(8, 5, game_resource.teams[2].id);
 }
 
 // Update
@@ -113,11 +117,11 @@ fn update_tile_transform(
 }
 
 fn update_slime_transform(
-    mut query: Query<(&mut Transform, &SlimeComponent)>,
+    mut query: Query<(&mut Transform, &TransformComponent), With<SlimeComponent>>,
 ) {
-    query.iter_mut().for_each(|(mut transform, slime)| {
-        transform.translation.x = slime.x as f32;
-        transform.translation.z = slime.z as f32;
+    query.iter_mut().for_each(|(mut model_transform, logic_transform)| {
+        model_transform.translation.x = logic_transform.x as f32;
+        model_transform.translation.z = logic_transform.z as f32;
     });
 }
 

@@ -1,8 +1,6 @@
 use bevy::prelude::*;
 
-use crate::resources::*;
-use crate::components::*;
-use crate::core::*;
+use crate::prelude::*;
 
 pub struct TeamSystemPlugin;
 impl Plugin for TeamSystemPlugin {
